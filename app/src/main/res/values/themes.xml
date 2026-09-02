@@ -1,0 +1,19 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.Med" parent="Theme.Material3.Light.NoActionBar">
+        <!-- Customize your light theme here. -->
+         <item name="colorPrimary">@color/blue</item>
+        <item name="colorOnPrimary">@color/blue</item>
+        <item name="colorSecondaryContainer">@color/blue</item>
+        <item name="colorOnSurface">@color/blue</item>
+        <item name="android:statusBarColor">@color/blue</item>
+        <item name="rippleColor">@color/blue</item>
+    </style>
+
+    <style name="Theme.Med" parent="Base.Theme.Med" />
+
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/blue</item>
+        <item name="postSplashScreenTheme">@style/Theme.Med</item>
+    </style>
+</resources>
