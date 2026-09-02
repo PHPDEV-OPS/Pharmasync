@@ -1,5 +1,5 @@
 # Pharmasync
-**[Download APK](Pharmasync_Final.apk)**
+
 
 The **Pharmasync** app is a comprehensive solution designed to enhance the efficiency and reliability of medicine management for both pharmacists and suppliers. It streamlines inventory tracking, reordering, and store discovery.
 
