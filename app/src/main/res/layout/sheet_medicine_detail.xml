@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="24dp"
+        android:paddingBottom="24dp">
+
+        <com.google.android.material.bottomsheet.BottomSheetDragHandleView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/image"
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:background="@drawable/bg_image_placeholder"
+                android:importantForAccessibility="no"
+                android:scaleType="centerCrop"
+                app:shapeAppearance="@style/ShapeAppearance.Material3.Corner.Large"
+                tools:src="@drawable/img_medicine_placeholder" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="@style/TextAppearance.Material3.TitleLarge"
+                    android:textColor="?attr/colorOnSurface"
+                    tools:text="Amoxicillin 500mg" />
+
+                <TextView
+                    android:id="@+id/category"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    tools:text="Antibiotic" />
+
+                <TextView
+                    android:id="@+id/stock_pill"
+                    style="@style/Widget.Pharmasync.StatusPill"
+                    android:layout_marginTop="8dp"
+                    tools:text="Low · 4 left" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:baselineAligned="false"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                style="@style/Widget.Pharmasync.StatBox"
+                android:layout_marginEnd="6dp">
+
+                <TextView
+                    android:id="@+id/price"
+                    style="@style/Widget.Pharmasync.StatValue"
+                    tools:text="$4.50" />
+
+                <TextView
+                    style="@style/Widget.Pharmasync.StatLabel"
+                    android:text="@string/label_price" />
+            </LinearLayout>
+
+            <LinearLayout
+                style="@style/Widget.Pharmasync.StatBox"
+                android:layout_marginHorizontal="6dp">
+
+                <TextView
+                    android:id="@+id/stock"
+                    style="@style/Widget.Pharmasync.StatValue"
+                    tools:text="120" />
+
+                <TextView
+                    style="@style/Widget.Pharmasync.StatLabel"
+                    android:text="@string/label_in_stock" />
+            </LinearLayout>
+
+            <LinearLayout
+                style="@style/Widget.Pharmasync.StatBox"
+                android:layout_marginStart="6dp">
+
+                <TextView
+                    android:id="@+id/alert_level"
+                    style="@style/Widget.Pharmasync.StatValue"
+                    tools:text="20" />
+
+                <TextView
+                    style="@style/Widget.Pharmasync.StatLabel"
+                    android:text="@string/label_alert_level" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/manufacturer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:drawablePadding="8dp"
+            app:drawableTint="?attr/colorOnSurfaceVariant"
+            android:gravity="center_vertical"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            app:drawableStartCompat="@drawable/ic_business"
+            tools:text="Marksans Pharma Limited" />
+
+        <TextView
+            android:id="@+id/description"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:lineSpacingExtra="2dp"
+            android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+            android:textColor="?attr/colorOnSurface"
+            tools:text="Broad-spectrum penicillin antibiotic." />
+
+        <Button
+            android:id="@+id/btn_update_stock"
+            style="@style/Widget.Pharmasync.Button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/action_update_stock" />
+
+        <Button
+            android:id="@+id/btn_reorder"
+            style="@style/Widget.Pharmasync.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/action_reorder"
+            app:icon="@drawable/ic_local_shipping" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btn_edit"
+                style="@style/Widget.Material3.Button.TextButton.Icon"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/action_edit"
+                app:icon="@drawable/ic_edit" />
+
+            <Button
+                android:id="@+id/btn_delete"
+                style="@style/Widget.Material3.Button.TextButton.Icon"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/action_delete"
+                android:textColor="?attr/colorError"
+                app:icon="@drawable/ic_delete"
+                app:iconTint="?attr/colorError" />
+        </LinearLayout>
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

@@ -1,0 +1,78 @@
+rules_version = '2';
+
+// Deploy with: firebase deploy --only firestore:rules
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // Account profiles. Pharmacists list supplier accounts, so any signed-in user may read.
+    match /Users/{uid} {
+      allow read: if signedIn();
+      allow write: if isOwner(uid);
+    }
+
+    // Public pharmacy listing (explore screens work without an account).
+    match /Medical-Store/{uid} {
+      allow read: if true;
+      allow write: if isOwner(uid);
+    }
+
+    match /Suppliers-Data/{uid} {
+      allow read: if signedIn();
+      allow write: if isOwner(uid);
+    }
+
+    // Pharmacy inventory: public read so patients can see what's in stock.
+    match /Medicines/{uid}/MyMedicines/{medicineId} {
+      allow read: if true;
+      allow write: if isOwner(uid);
+    }
+    match /{path=**}/MyMedicines/{medicineId} {
+      allow read: if true;
+    }
+
+    // Supplier catalogs: readable by signed-in pharmacies. Only the supplier edits them.
+    match /Supplier-Stock/{uid}/MyStock/{itemId} {
+      allow read: if signedIn();
+      allow write: if isOwner(uid);
+    }
+
+    match /Invoice/{uid}/MyInvoice/{invoiceId} {
+      allow read, write: if isOwner(uid);
+    }
+
+    // Shop coordinates for the public map.
+    match /Cordinates/{uid}/MyCordinates/{docId} {
+      allow read: if true;
+      allow write: if isOwner(uid);
+    }
+    match /{path=**}/MyCordinates/{docId} {
+      allow read: if true;
+    }
+
+    // Orders are visible to, and updatable by, the two parties involved.
+    match /Orders/{orderId} {
+      function party() {
+        return signedIn() &&
+          (request.auth.uid == resource.data.PharmacistId || request.auth.uid == resource.data.SupplierId);
+      }
+      allow read: if party();
+      allow create: if signedIn()
+        && request.resource.data.PharmacistId == request.auth.uid
+        && request.resource.data.Status == 'Pending'
+        && request.resource.data.Quantity is number
+        && request.resource.data.Quantity > 0;
+      allow update: if party()
+        && request.resource.data.PharmacistId == resource.data.PharmacistId
+        && request.resource.data.SupplierId == resource.data.SupplierId;
+      allow delete: if false;
+    }
+  }
+}

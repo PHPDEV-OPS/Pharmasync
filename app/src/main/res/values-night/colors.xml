@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="header_start">#2E43A6</color>
+    <color name="header_end">#1B2870</color>
+
+    <!-- Material 3 palette (dark) -->
+    <color name="md_primary">#BAC3FF</color>
+    <color name="md_on_primary">#0F2178</color>
+    <color name="md_primary_container">#2E43A6</color>
+    <color name="md_on_primary_container">#DEE1FF</color>
+    <color name="md_secondary">#82D5C6</color>
+    <color name="md_on_secondary">#003731</color>
+    <color name="md_secondary_container">#005047</color>
+    <color name="md_on_secondary_container">#9EF2E2</color>
+    <color name="md_error">#FFB4AB</color>
+    <color name="md_on_error">#690005</color>
+    <color name="md_error_container">#93000A</color>
+    <color name="md_on_error_container">#FFDAD6</color>
+    <color name="md_background">#121318</color>
+    <color name="md_on_background">#E3E1E9</color>
+    <color name="md_surface">#1B1C22</color>
+    <color name="md_on_surface">#E3E1E9</color>
+    <color name="md_surface_variant">#45464F</color>
+    <color name="md_on_surface_variant">#C6C5D0</color>
+    <color name="md_outline">#90909A</color>
+    <color name="md_outline_variant">#34353D</color>
+    <color name="md_surface_container_low">#1B1C22</color>
+    <color name="md_surface_container">#1F2026</color>
+    <color name="md_surface_container_high">#292A31</color>
+    <color name="md_inverse_surface">#E3E1E9</color>
+    <color name="md_inverse_on_surface">#2F3036</color>
+    <color name="md_inverse_primary">#4C64DC</color>
+
+    <color name="status_pending">#FFB95C</color>
+    <color name="status_pending_bg">#3D2A0C</color>
+    <color name="status_accepted">#BAC3FF</color>
+    <color name="status_accepted_bg">#263262</color>
+    <color name="status_dispatched">#D4BBFF</color>
+    <color name="status_dispatched_bg">#3A2A5A</color>
+    <color name="status_delivered">#8FDBA3</color>
+    <color name="status_delivered_bg">#173B23</color>
+    <color name="status_declined">#FFB4AB</color>
+    <color name="status_declined_bg">#4A1F1B</color>
+    <color name="status_neutral">#C6C5D0</color>
+    <color name="status_neutral_bg">#34353D</color>
+</resources>

@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:attr/colorBackground"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingBottom="24dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_header"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingHorizontal="24dp"
+            android:paddingTop="28dp"
+            android:paddingBottom="28dp">
+
+            <FrameLayout
+                android:layout_width="120dp"
+                android:layout_height="120dp">
+
+                <com.google.android.material.imageview.ShapeableImageView
+                    android:id="@+id/avatar"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_icon_circle"
+                    android:contentDescription="@string/action_change_photo"
+                    android:padding="2dp"
+                    android:scaleType="centerCrop"
+                    app:shapeAppearance="@style/ShapeAppearance.Material3.Corner.Full"
+                    app:strokeColor="@color/on_header"
+                    app:strokeWidth="3dp"
+                    tools:src="@drawable/img_medicine_placeholder" />
+
+                <TextView
+                    android:id="@+id/avatar_initials"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:textAppearance="@style/TextAppearance.Material3.DisplaySmall"
+                    android:textColor="@color/md_on_primary_container"
+                    android:visibility="gone"
+                    tools:text="JD" />
+
+                <com.google.android.material.progressindicator.CircularProgressIndicator
+                    android:id="@+id/avatar_progress"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:visibility="gone"
+                    app:indicatorColor="@color/on_header"
+                    app:indicatorSize="120dp"
+                    app:trackThickness="4dp" />
+
+                <com.google.android.material.floatingactionbutton.FloatingActionButton
+                    android:id="@+id/btn_change_photo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|end"
+                    android:contentDescription="@string/action_change_photo"
+                    app:fabSize="mini"
+                    app:srcCompat="@drawable/ic_photo_camera" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:gravity="center"
+                android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
+                android:textColor="@color/on_header"
+                android:textStyle="bold"
+                tools:text="Jane Doe" />
+
+            <TextView
+                android:id="@+id/email"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:gravity="center"
+                android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                android:textColor="@color/on_header_muted"
+                tools:text="jane@citycare.com" />
+
+            <TextView
+                android:id="@+id/role"
+                style="@style/Widget.Pharmasync.StatusPill"
+                android:layout_marginTop="10dp"
+                tools:text="Pharmacist" />
+
+            <TextView
+                android:id="@+id/upload_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                android:textColor="@color/on_header_muted"
+                android:visibility="gone"
+                tools:text="Uploading photo… 42%"
+                tools:visibility="visible" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="24dp"
+            android:layout_marginTop="20dp"
+            android:text="@string/section_business"
+            android:textAppearance="@style/TextAppearance.Pharmasync.SectionLabel" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="8dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingVertical="8dp">
+
+                <TextView
+                    android:id="@+id/business"
+                    style="@style/Widget.Pharmasync.InfoRow"
+                    app:drawableStartCompat="@drawable/ic_business"
+                    tools:text="City Care Pharmacy" />
+
+                <TextView
+                    android:id="@+id/address"
+                    style="@style/Widget.Pharmasync.InfoRow"
+                    app:drawableStartCompat="@drawable/ic_place"
+                    tools:text="Moi Avenue, Nairobi" />
+
+                <TextView
+                    android:id="@+id/phone"
+                    style="@style/Widget.Pharmasync.InfoRow"
+                    app:drawableStartCompat="@drawable/ic_phone"
+                    tools:text="+254 700 000 000" />
+
+                <Button
+                    android:id="@+id/btn_edit_profile"
+                    style="@style/Widget.Material3.Button.TextButton.Icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end"
+                    android:layout_marginEnd="8dp"
+                    android:text="@string/action_edit_profile"
+                    app:icon="@drawable/ic_edit" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="24dp"
+            android:layout_marginTop="20dp"
+            android:text="@string/section_account"
+            android:textAppearance="@style/TextAppearance.Pharmasync.SectionLabel" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="8dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <include
+                    android:id="@+id/row_location"
+                    layout="@layout/include_settings_row" />
+
+                <com.google.android.material.divider.MaterialDivider
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="72dp"
+                    app:dividerColor="?attr/colorOutlineVariant" />
+
+                <include
+                    android:id="@+id/row_reset_password"
+                    layout="@layout/include_settings_row" />
+
+                <com.google.android.material.divider.MaterialDivider
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="72dp"
+                    app:dividerColor="?attr/colorOutlineVariant" />
+
+                <include
+                    android:id="@+id/row_logout"
+                    layout="@layout/include_settings_row" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>
