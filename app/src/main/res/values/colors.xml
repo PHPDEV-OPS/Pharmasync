@@ -1,8 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
-    <color name="blue">#4C64DC</color>
-    <color name="light_blue">#DDE2F9</color>
-    <color name="red">#D32F2F</color>
+    <!-- Brand -->
+    <color name="brand_primary">#4C64DC</color>
+    <color name="header_start">#4C64DC</color>
+    <color name="header_end">#2F43A8</color>
+    <color name="on_header">#FFFFFF</color>
+    <color name="on_header_muted">#D9FFFFFF</color>
+    <color name="scrim">#99000000</color>
+
+    <!-- Material 3 palette (light) -->
+    <color name="md_primary">#4C64DC</color>
+    <color name="md_on_primary">#FFFFFF</color>
+    <color name="md_primary_container">#DEE1FF</color>
+    <color name="md_on_primary_container">#00105C</color>
+    <color name="md_secondary">#006B5F</color>
+    <color name="md_on_secondary">#FFFFFF</color>
+    <color name="md_secondary_container">#CDEFE9</color>
+    <color name="md_on_secondary_container">#00201C</color>
+    <color name="md_error">#BA1A1A</color>
+    <color name="md_on_error">#FFFFFF</color>
+    <color name="md_error_container">#FFDAD6</color>
+    <color name="md_on_error_container">#410002</color>
+    <color name="md_background">#F6F7FB</color>
+    <color name="md_on_background">#1A1B21</color>
+    <color name="md_surface">#FFFFFF</color>
+    <color name="md_on_surface">#1A1B21</color>
+    <color name="md_surface_variant">#E3E4F0</color>
+    <color name="md_on_surface_variant">#5B5E6E</color>
+    <color name="md_outline">#8F92A3</color>
+    <color name="md_outline_variant">#E1E3ED</color>
+    <color name="md_surface_container_low">#F9FAFE</color>
+    <color name="md_surface_container">#F0F2FA</color>
+    <color name="md_surface_container_high">#E9EBF5</color>
+    <color name="md_inverse_surface">#2F3036</color>
+    <color name="md_inverse_on_surface">#F2F0F7</color>
+    <color name="md_inverse_primary">#BAC3FF</color>
+
+    <!-- Semantic status colors -->
+    <color name="status_pending">#8A5100</color>
+    <color name="status_pending_bg">#FFEDD1</color>
+    <color name="status_accepted">#2F4FD1</color>
+    <color name="status_accepted_bg">#E3E8FF</color>
+    <color name="status_dispatched">#6A3FB5</color>
+    <color name="status_dispatched_bg">#EEE5FF</color>
+    <color name="status_delivered">#1B7F3B</color>
+    <color name="status_delivered_bg">#DDF5E4</color>
+    <color name="status_declined">#B3261E</color>
+    <color name="status_declined_bg">#FCE3E1</color>
+    <color name="status_neutral">#5B5E6E</color>
+    <color name="status_neutral_bg">#ECEDF2</color>
 </resources>
