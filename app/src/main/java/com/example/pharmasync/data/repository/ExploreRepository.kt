@@ -1,47 +1,48 @@
 package com.example.pharmasync.data.repository
 
-import com.example.pharmasync.data.firestore.Fs
-import com.example.pharmasync.data.firestore.number
-import com.example.pharmasync.data.firestore.toMedicine
-import com.example.pharmasync.data.firestore.toPharmacy
+import android.util.Log
 import com.example.pharmasync.data.model.Pharmacy
 import com.example.pharmasync.data.model.PharmacyMedicine
-import com.google.firebase.firestore.FirebaseFirestore
+import com.example.pharmasync.data.remote.PharmasyncApi
+import com.example.pharmasync.data.remote.apiCall
+import com.example.pharmasync.data.remote.toMedicine
+import com.example.pharmasync.data.remote.toPharmacy
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.tasks.await
 
 /** Read-only public data for people browsing without an account. */
-class ExploreRepository(private val firestore: FirebaseFirestore) {
+class ExploreRepository(private val api: PharmasyncApi) {
 
-    suspend fun pharmacies(): List<Pharmacy> = coroutineScope {
-        val stores = async { firestore.collection(Fs.MEDICAL_STORES).get().await() }
-        val coordinates = async { runCatching { firestore.collectionGroup(Fs.COORDINATES_SUB).get().await() }.getOrNull() }
+    data class Snapshot(
+        val pharmacies: List<Pharmacy>,
+        val medicines: List<PharmacyMedicine>,
+        /** First failure, if any part couldn't be loaded. Partial data is still returned. */
+        val error: Exception?,
+    )
 
-        // Coordinates live at Cordinates/{uid}/MyCordinates/data (older data) or on the store itself.
-        val pins = coordinates.await()?.documents.orEmpty().mapNotNull { doc ->
-            val uid = doc.getString("UserID") ?: doc.reference.parent.parent?.id ?: return@mapNotNull null
-            val lat = doc.number("Latitude") ?: return@mapNotNull null
-            val lng = doc.number("Longitude") ?: return@mapNotNull null
-            uid to (lat to lng)
-        }.toMap()
+    suspend fun load(): Snapshot = coroutineScope {
+        val pharmaciesTask = async { attempt { apiCall { api.publicPharmacies() }.map { it.toPharmacy() } } }
+        val medicinesTask = async { attempt { apiCall { api.publicMedicines() }.map { it.toMedicine() } } }
 
-        stores.await().documents
-            .map { it.toPharmacy() }
-            .filter { it.name.isNotBlank() }
-            .map { pharmacy ->
-                if (pharmacy.hasLocation) pharmacy
-                else pins[pharmacy.uid]?.let { (lat, lng) -> pharmacy.copy(latitude = lat, longitude = lng) } ?: pharmacy
-            }
-            .sortedBy { it.name.lowercase() }
+        val pharmacyResult = pharmaciesTask.await()
+        val medicineResult = medicinesTask.await()
+        val pharmacies = pharmacyResult.getOrNull().orEmpty()
+        val byUid = pharmacies.associateBy { it.uid }
+
+        Snapshot(
+            pharmacies = pharmacies,
+            medicines = medicineResult.getOrNull().orEmpty().map { PharmacyMedicine(it, byUid[it.ownerId]) },
+            error = listOf(pharmacyResult, medicineResult).firstNotNullOfOrNull { it.exceptionOrNull() as? Exception },
+        )
     }
 
-    suspend fun medicinesInStock(pharmacies: List<Pharmacy>): List<PharmacyMedicine> {
-        val byUid = pharmacies.associateBy { it.uid }
-        return firestore.collectionGroup(Fs.INVENTORY_SUB).get().await().documents
-            .map { it.toMedicine() }
-            .filter { it.stock > 0 && it.name.isNotBlank() && it.ownerId in byUid }
-            .map { PharmacyMedicine(it, byUid[it.ownerId]) }
-            .sortedBy { it.medicine.name.lowercase() }
+    private suspend fun <T> attempt(block: suspend () -> T): Result<T> = try {
+        Result.success(block())
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        Log.w("ExploreRepository", "Load failed", e)
+        Result.failure(e)
     }
 }

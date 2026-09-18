@@ -7,6 +7,18 @@ import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
 @Dao
+interface ProfileDao {
+    @Query("SELECT * FROM profiles WHERE uid = :uid")
+    fun observe(uid: String): Flow<ProfileEntity?>
+
+    @Upsert
+    suspend fun upsert(profile: ProfileEntity)
+
+    @Query("DELETE FROM profiles")
+    suspend fun clear()
+}
+
+@Dao
 interface MedicineDao {
     @Query("SELECT * FROM medicines WHERE owner_id = :ownerId AND collection = :collection ORDER BY name COLLATE NOCASE")
     fun observe(ownerId: String, collection: String): Flow<List<MedicineEntity>>

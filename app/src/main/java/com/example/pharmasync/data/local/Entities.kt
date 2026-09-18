@@ -9,7 +9,54 @@ import com.example.pharmasync.data.model.Medicine
 import com.example.pharmasync.data.model.Order
 import com.example.pharmasync.data.model.OrderStatus
 import com.example.pharmasync.data.model.StockCollection
+import com.example.pharmasync.data.model.Role
 import com.example.pharmasync.data.model.SupplierSummary
+import com.example.pharmasync.data.model.UserProfile
+
+@Entity(tableName = "profiles")
+data class ProfileEntity(
+    @PrimaryKey val uid: String,
+    val email: String,
+    val name: String,
+    @ColumnInfo(name = "business_name") val businessName: String,
+    val address: String,
+    val phone: String,
+    val role: String,
+    @ColumnInfo(name = "photo_url") val photoUrl: String,
+    @ColumnInfo(name = "photo_version") val photoVersion: Long,
+    val latitude: Double?,
+    val longitude: Double?,
+) {
+    fun toModel() = UserProfile(
+        uid = uid,
+        email = email,
+        name = name,
+        businessName = businessName,
+        address = address,
+        phone = phone,
+        role = Role.from(role),
+        photoUrl = photoUrl,
+        photoVersion = photoVersion,
+        latitude = latitude,
+        longitude = longitude,
+    )
+
+    companion object {
+        fun from(p: UserProfile) = ProfileEntity(
+            uid = p.uid,
+            email = p.email,
+            name = p.name,
+            businessName = p.businessName,
+            address = p.address,
+            phone = p.phone,
+            role = p.role.apiValue,
+            photoUrl = p.photoUrl,
+            photoVersion = p.photoVersion,
+            latitude = p.latitude,
+            longitude = p.longitude,
+        )
+    }
+}
 
 @Entity(
     tableName = "medicines",
@@ -109,7 +156,7 @@ data class OrderEntity(
             medicineName = order.medicineName,
             quantity = order.quantity,
             unitPrice = order.unitPrice,
-            status = order.status.firestoreValue,
+            status = order.status.apiValue,
             createdAt = order.createdAt,
             updatedAt = order.updatedAt,
         )

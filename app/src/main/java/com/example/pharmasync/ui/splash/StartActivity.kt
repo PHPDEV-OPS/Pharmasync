@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import com.example.pharmasync.appContainer
+import com.example.pharmasync.ui.auth.CompleteProfileActivity
 import com.example.pharmasync.ui.auth.WelcomeActivity
 import com.example.pharmasync.ui.auth.homeIntent
 import kotlinx.coroutines.launch
@@ -27,12 +28,15 @@ class StartActivity : AppCompatActivity() {
         val auth = appContainer.authRepository
         val uid = auth.currentUid
         lifecycleScope.launch {
-            val target = if (uid != null && auth.isSignedInAndVerified()) {
-                val role = withTimeoutOrNull(ROLE_TIMEOUT_MS) { auth.resolveRole(uid) }
-                    ?: appContainer.session.cachedRole(uid)
-                if (role != null) homeIntent(this@StartActivity, role) else Intent(this@StartActivity, WelcomeActivity::class.java)
-            } else {
-                Intent(this@StartActivity, WelcomeActivity::class.java)
+            val target = when {
+                uid == null || !auth.isSignedInAndVerified() -> Intent(this@StartActivity, WelcomeActivity::class.java)
+                else -> {
+                    val role = withTimeoutOrNull(ROLE_TIMEOUT_MS) { auth.resolveRole(uid) }
+                    when (role) {
+                        null -> Intent(this@StartActivity, CompleteProfileActivity::class.java)
+                        else -> homeIntent(this@StartActivity, role)
+                    }
+                }
             }
             ready = true
             startActivity(target)

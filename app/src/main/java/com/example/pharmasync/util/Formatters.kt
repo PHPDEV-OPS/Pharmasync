@@ -1,14 +1,31 @@
 package com.example.pharmasync.util
 
 import java.text.DateFormat
+import java.text.DecimalFormat
 import java.text.NumberFormat
 import java.util.Date
 import java.util.Locale
 
 object Formatters {
-    private val currency: NumberFormat get() = NumberFormat.getCurrencyInstance(Locale.getDefault())
+    private val kenyaLocale = Locale("en", "KE")
 
-    fun money(amount: Double): String = currency.format(amount)
+    private val currencyFormat: NumberFormat by lazy {
+        (NumberFormat.getCurrencyInstance(kenyaLocale) as? DecimalFormat)?.apply {
+            val symbols = decimalFormatSymbols
+            symbols.currencySymbol = "KSh"
+            decimalFormatSymbols = symbols
+            minimumFractionDigits = 2
+            maximumFractionDigits = 2
+        } ?: NumberFormat.getCurrencyInstance(kenyaLocale)
+    }
+
+    fun money(amount: Double): String = try {
+        synchronized(currencyFormat) {
+            currencyFormat.format(amount)
+        }
+    } catch (_: Exception) {
+        String.format(Locale.US, "KSh %,.2f", amount)
+    }
 
     fun date(millis: Long): String =
         if (millis <= 0) "" else DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(millis))

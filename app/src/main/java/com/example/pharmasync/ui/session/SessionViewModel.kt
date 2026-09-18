@@ -18,12 +18,13 @@ import com.example.pharmasync.data.model.Role
 import com.example.pharmasync.data.model.StockCollection
 import com.example.pharmasync.data.model.SupplierSummary
 import com.example.pharmasync.data.model.UserProfile
+import com.example.pharmasync.data.remote.ApiException
 import com.example.pharmasync.ui.common.OrderAction
 import com.example.pharmasync.util.InsufficientStockException
 import com.example.pharmasync.util.Notifications
 import com.example.pharmasync.util.UiMessage
-import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -36,15 +37,18 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 
 /**
- * Everything a signed-in pharmacist or supplier works with. Scoped to the home activity so all
- * tabs share one set of Firestore listeners, and data survives tab switches.
+ * Everything a signed-in pharmacist or supplier works with. Scoped to the home activity so all tabs
+ * share one data set. Screens read from Room; [refresh] pulls from the backend, and a poll keeps
+ * orders and stock current while the app is in the foreground.
  */
 class SessionViewModel(application: Application, val role: Role) : AndroidViewModel(application) {
 
-    enum class Sync { STOCK, ORDERS, SUPPLIERS, INVOICES }
+    enum class Sync { PROFILE, STOCK, ORDERS, SUPPLIERS, INVOICES }
 
     private val app = application
     private val container = application.appContainer
@@ -68,55 +72,107 @@ class SessionViewModel(application: Application, val role: Role) : AndroidViewMo
     private val _uploadProgress = MutableStateFlow<Int?>(null)
     val uploadProgress: StateFlow<Int?> = _uploadProgress
 
-    val profile: StateFlow<UserProfile?> = container.userRepository.observeProfile(uid).eager(null)
+    /** Set when the backend can't be reached, so screens can explain empty lists. */
+    private val _backendIssue = MutableStateFlow<UiMessage?>(null)
+    val backendIssue: StateFlow<UiMessage?> = _backendIssue
+
+    /** True when the account has no Pharmasync profile yet; the UI sends the user to finish setup. */
+    private val _profileMissing = MutableStateFlow(false)
+    val profileMissing: StateFlow<Boolean> = _profileMissing
+
+    val profile: StateFlow<UserProfile?> = container.userRepository.observe(uid).eager(null)
     val stock: StateFlow<List<Medicine>> = inventory.observe(uid, stockCollection).eager(emptyList())
-    val orders: StateFlow<List<Order>> =
-        (if (role == Role.PHARMACIST) ordersRepo.observeForPharmacist(uid) else ordersRepo.observeForSupplier(uid)).eager(emptyList())
+    val orders: StateFlow<List<Order>> = ordersRepo.observe(uid, role).eager(emptyList())
     val suppliers: StateFlow<List<SupplierSummary>> =
         (if (role == Role.PHARMACIST) container.supplierRepository.observe() else emptyFlow()).eager(emptyList())
     val invoices: StateFlow<List<Invoice>> =
         (if (role == Role.PHARMACIST) container.invoiceRepository.observe(uid) else emptyFlow()).eager(emptyList())
 
-    private val registrations = mutableListOf<ListenerRegistration>()
+    private var pollJob: Job? = null
 
     init {
         if (isSignedIn) {
-            startSync()
+            refreshAll()
             watchAlerts()
         }
     }
 
     // region Sync
 
-    private fun startSync() {
-        track(Sync.STOCK) { err, ok -> inventory.sync(uid, stockCollection, viewModelScope, err, ok) }
-        track(Sync.ORDERS) { err, ok ->
-            if (role == Role.PHARMACIST) ordersRepo.syncForPharmacist(uid, viewModelScope, err, ok)
-            else ordersRepo.syncForSupplier(uid, viewModelScope, err, ok)
-        }
-        if (role == Role.PHARMACIST) {
-            track(Sync.SUPPLIERS) { err, ok -> container.supplierRepository.sync(viewModelScope, err, ok) }
-            track(Sync.INVOICES) { err, ok -> container.invoiceRepository.sync(uid, viewModelScope, err, ok) }
+    /** Called by the host activity so polling only runs while the app is on screen. */
+    fun setForeground(active: Boolean) {
+        pollJob?.cancel()
+        if (!active || !isSignedIn) return
+        pollJob = viewModelScope.launch {
+            while (isActive) {
+                delay(POLL_INTERVAL_MS)
+                refresh(Sync.ORDERS, Sync.STOCK, quiet = true)
+            }
         }
     }
 
-    private fun track(key: Sync, start: (onError: (Exception) -> Unit, onSynced: () -> Unit) -> ListenerRegistration) {
-        _syncing.update { it + key }
-        val done = { _syncing.update { it - key } }
-        registrations += start({ error -> done(); messageChannel.trySend(UiMessage.Error(error)) }, done)
-        // Offline with nothing cached: stop showing progress after a while; data appears when online.
+    fun refreshSuppliers(onDone: () -> Unit = {}) = refresh(Sync.SUPPLIERS, onDone = onDone)
+
+    fun refreshAll(onDone: () -> Unit = {}) = refresh(*Sync.entries.toTypedArray(), onDone = onDone)
+
+    fun refresh(vararg parts: Sync, quiet: Boolean = false, onDone: () -> Unit = {}) {
+        if (!isSignedIn) return
         viewModelScope.launch {
-            delay(SYNC_TIMEOUT_MS)
-            done()
+            val wanted = parts.filter { it.appliesTo(role) }
+            _syncing.update { it + wanted }
+            try {
+                supervisorScope {
+                    wanted.forEach { part ->
+                        launch {
+                            try {
+                                load(part)
+                                _syncing.update { it - part }
+                            } catch (e: CancellationException) {
+                                throw e
+                            } catch (e: Exception) {
+                                _syncing.update { it - part }
+                                report(e, quiet)
+                            }
+                        }
+                    }
+                }
+                if (_syncing.value.isEmpty()) _backendIssue.value = null
+            } finally {
+                _syncing.update { it - wanted.toSet() }
+                onDone()
+            }
         }
     }
 
-    fun stopSync() {
-        registrations.forEach { it.remove() }
-        registrations.clear()
+    private suspend fun load(part: Sync) = when (part) {
+        Sync.PROFILE -> {
+            val fetched = container.userRepository.refresh()
+            _profileMissing.value = fetched == null
+            fetched?.let { container.session.cacheRole(uid, it.role) }
+            Unit
+        }
+        Sync.STOCK -> inventory.refresh(uid, stockCollection)
+        Sync.ORDERS -> ordersRepo.refresh(uid, role)
+        Sync.SUPPLIERS -> container.supplierRepository.refresh()
+        Sync.INVOICES -> container.invoiceRepository.refresh(uid)
     }
 
-    override fun onCleared() = stopSync()
+    private fun report(error: Exception, quiet: Boolean) {
+        Log.w(TAG, "Refresh failed", error)
+        if (error is ApiException && error.isProfileMissing) {
+            _profileMissing.value = true
+            return
+        }
+        _backendIssue.value = UiMessage.Error(error)
+        if (!quiet) send(UiMessage.Error(error))
+    }
+
+    private fun Sync.appliesTo(role: Role): Boolean =
+        role == Role.PHARMACIST || (this != Sync.SUPPLIERS && this != Sync.INVOICES)
+
+    override fun onCleared() {
+        pollJob?.cancel()
+    }
 
     // endregion
 
@@ -157,9 +213,9 @@ class SessionViewModel(application: Application, val role: Role) : AndroidViewMo
 
     // region Stock
 
-    fun newMedicineId(): String = inventory.newId(uid, stockCollection)
+    fun newMedicineId(): String = inventory.newMedicineId()
 
-    fun saveMedicine(medicine: Medicine, image: Uri?) = launchAction(showBusy = image != null) {
+    fun saveMedicine(medicine: Medicine, image: Uri?) = launchAction(showBusy = true) {
         val saved = inventory.save(medicine, stockCollection, image)
         send(UiMessage.of(R.string.msg_medicine_saved, saved.name))
     }
@@ -185,7 +241,7 @@ class SessionViewModel(application: Application, val role: Role) : AndroidViewMo
             throw e
         } catch (e: Exception) {
             Log.w(TAG, "Demo import failed", e)
-            send(UiMessage.of(R.string.msg_demo_failed))
+            send(UiMessage.Error(e))
         } finally {
             _busy.value = false
         }
@@ -196,34 +252,19 @@ class SessionViewModel(application: Application, val role: Role) : AndroidViewMo
     // region Orders
 
     fun performOrderAction(order: Order, action: OrderAction) = launchAction(showBusy = true) {
-        when (action) {
-            OrderAction.ACCEPT -> try {
-                ordersRepo.accept(order)
-                send(statusMessage(OrderStatus.ACCEPTED))
-            } catch (e: InsufficientStockException) {
-                send(UiMessage.of(R.string.error_insufficient_stock, e.available))
-            }
-            OrderAction.DECLINE -> {
-                ordersRepo.updateStatus(order, OrderStatus.DECLINED)
-                send(statusMessage(OrderStatus.DECLINED))
-            }
-            OrderAction.DISPATCH -> {
-                ordersRepo.updateStatus(order, OrderStatus.DISPATCHED)
-                send(statusMessage(OrderStatus.DISPATCHED))
-            }
-            OrderAction.CANCEL -> {
-                ordersRepo.updateStatus(order, OrderStatus.CANCELLED)
-                send(statusMessage(OrderStatus.CANCELLED))
-            }
-            OrderAction.RECEIVE -> {
-                ordersRepo.markReceived(order)
+        try {
+            val updated = ordersRepo.perform(order, action.apiValue)
+            if (action == OrderAction.RECEIVE) {
                 send(UiMessage.of(R.string.msg_order_received, order.quantity, order.medicineName))
+                inventory.refresh(uid, stockCollection)
+            } else {
+                send(UiMessage.of(R.string.msg_order_status, app.getString(statusLabel(updated.status)).lowercase()))
             }
+        } catch (e: InsufficientStockException) {
+            send(UiMessage.of(R.string.error_insufficient_stock, e.available))
+            inventory.refresh(uid, stockCollection)
         }
     }
-
-    private fun statusMessage(status: OrderStatus) =
-        UiMessage.of(R.string.msg_order_status, app.getString(statusLabel(status)).lowercase())
 
     // endregion
 
@@ -234,24 +275,15 @@ class SessionViewModel(application: Application, val role: Role) : AndroidViewMo
         send(UiMessage.of(R.string.msg_invoice_saved))
     }
 
-    fun deleteInvoice(invoice: Invoice) = launchAction {
-        container.invoiceRepository.delete(invoice)
-    }
-
-    fun exportInvoice(invoice: Invoice) = launchAction(showBusy = true) {
-        val file = container.invoiceRepository.exportPdf(invoice)
-        send(UiMessage.of(R.string.msg_pdf_saved, file))
-    }
-
     // endregion
 
     // region Profile
 
     fun uploadProfilePhoto(image: Uri) = viewModelScope.launch {
-        val current = profile.value ?: return@launch
+        if (_uploadProgress.value != null) return@launch
         _uploadProgress.value = 0
         try {
-            container.userRepository.uploadProfilePhoto(current, image) { _uploadProgress.value = it }
+            container.userRepository.uploadPhoto(image) { _uploadProgress.value = it }
             send(UiMessage.of(R.string.msg_photo_updated))
         } catch (e: CancellationException) {
             throw e
@@ -263,15 +295,12 @@ class SessionViewModel(application: Application, val role: Role) : AndroidViewMo
         }
     }
 
-    fun updateProfile(updated: UserProfile) = launchAction {
-        val previous = profile.value
-        container.userRepository.updateProfile(updated)
+    fun updateProfile(name: String, businessName: String, address: String, phone: String) = launchAction(showBusy = true) {
+        container.userRepository.createOrUpdate(null, name, businessName, address, phone)
         send(UiMessage.of(R.string.msg_profile_updated))
-        if (previous?.address != updated.address) container.userRepository.geocodeAndSave(updated)
     }
 
     fun pinCurrentLocation() = launchAction(showBusy = true) {
-        val current = profile.value ?: return@launchAction
         val locationRepo = container.locationRepository
         send(UiMessage.of(R.string.msg_fetching_location))
         val point = locationRepo.currentLocation()
@@ -279,8 +308,8 @@ class SessionViewModel(application: Application, val role: Role) : AndroidViewMo
             send(UiMessage.of(R.string.error_location_unavailable))
             return@launchAction
         }
-        val address = locationRepo.reverseGeocode(point) ?: current.address
-        container.userRepository.saveLocation(current, point, address)
+        val address = locationRepo.reverseGeocode(point) ?: profile.value?.address.orEmpty()
+        container.userRepository.saveLocation(point, address)
         send(UiMessage.of(R.string.msg_location_updated, address))
     }
 
@@ -291,7 +320,7 @@ class SessionViewModel(application: Application, val role: Role) : AndroidViewMo
     }
 
     suspend fun signOut() {
-        stopSync()
+        pollJob?.cancel()
         container.authRepository.signOut()
     }
 
@@ -320,7 +349,7 @@ class SessionViewModel(application: Application, val role: Role) : AndroidViewMo
 
     companion object {
         private const val TAG = "SessionViewModel"
-        private const val SYNC_TIMEOUT_MS = 12_000L
+        private const val POLL_INTERVAL_MS = 20_000L
         private val NOTIFY_PHARMACIST = setOf(OrderStatus.ACCEPTED, OrderStatus.DISPATCHED, OrderStatus.DECLINED)
 
         fun statusLabel(status: OrderStatus): Int = when (status) {

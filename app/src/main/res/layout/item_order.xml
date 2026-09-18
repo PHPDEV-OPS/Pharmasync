@@ -63,7 +63,7 @@
                 android:layout_weight="1"
                 android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                 android:textColor="?attr/colorOnSurface"
-                tools:text="200 × $0.40" />
+                tools:text="200 × KSh 40.00" />
 
             <TextView
                 android:id="@+id/total"
@@ -71,7 +71,7 @@
                 android:layout_height="wrap_content"
                 android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
                 android:textColor="?attr/colorOnSurface"
-                tools:text="$80.00" />
+                tools:text="KSh 8,000.00" />
         </LinearLayout>
 
         <TextView

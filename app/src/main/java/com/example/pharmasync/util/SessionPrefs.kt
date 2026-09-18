@@ -13,7 +13,7 @@ class SessionPrefs(context: Context) {
 
     fun cachedRole(uid: String): Role? = prefs.getString("role_$uid", null)?.let(Role::from)
 
-    fun cacheRole(uid: String, role: Role) = prefs.edit { putString("role_$uid", role.firestoreValue) }
+    fun cacheRole(uid: String, role: Role) = prefs.edit { putString("role_$uid", role.apiValue) }
 
     /**
      * Returns true the first time [key] is seen for [uid]. While [seedOnly] is true keys are

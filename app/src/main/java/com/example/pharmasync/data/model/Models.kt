@@ -1,22 +1,22 @@
 package com.example.pharmasync.data.model
 
-enum class Role(val firestoreValue: String) {
-    PHARMACIST("Pharmacist"),
-    SUPPLIER("Supplier");
+enum class Role(val apiValue: String) {
+    PHARMACIST("pharmacist"),
+    SUPPLIER("supplier");
 
     companion object {
         fun from(value: String?): Role =
-            if (value.equals(SUPPLIER.firestoreValue, ignoreCase = true)) SUPPLIER else PHARMACIST
+            if (value.equals(SUPPLIER.apiValue, ignoreCase = true)) SUPPLIER else PHARMACIST
     }
 }
 
 /** Which Firestore collection a [Medicine] lives in. */
-enum class StockCollection {
-    /** A pharmacy's shelf inventory: `Medicines/{uid}/MyMedicines`. */
-    INVENTORY,
+enum class StockCollection(val apiValue: String) {
+    /** A pharmacy's shelf inventory. */
+    INVENTORY("inventory"),
 
-    /** A supplier's sellable catalog: `Supplier-Stock/{uid}/MyStock`. */
-    SUPPLIER_CATALOG
+    /** A supplier's sellable catalog. */
+    SUPPLIER_CATALOG("catalog"),
 }
 
 data class Medicine(
@@ -29,7 +29,7 @@ data class Medicine(
     val stock: Int = 0,
     /** Alert when [stock] falls to this level; 0 disables alerts. */
     val lowStockThreshold: Int = 0,
-    /** Either an https download URL or a legacy Firebase Storage path. */
+    /** Public https URL of the product photo in Neon Object Storage. */
     val imageRef: String = "",
     val manufacturer: String = "",
     val ndc: String = "",
@@ -43,20 +43,20 @@ data class Medicine(
     }
 }
 
-enum class OrderStatus(val firestoreValue: String) {
-    PENDING("Pending"),
-    ACCEPTED("Accepted"),
-    DISPATCHED("Dispatched"),
-    DELIVERED("Delivered"),
-    DECLINED("Declined"),
-    CANCELLED("Cancelled");
+enum class OrderStatus(val apiValue: String) {
+    PENDING("pending"),
+    ACCEPTED("accepted"),
+    DISPATCHED("dispatched"),
+    DELIVERED("delivered"),
+    DECLINED("declined"),
+    CANCELLED("cancelled");
 
     val isOpen: Boolean get() = this == PENDING || this == ACCEPTED || this == DISPATCHED
     val isClosed: Boolean get() = !isOpen
 
     companion object {
         fun from(value: String?): OrderStatus =
-            entries.firstOrNull { it.firestoreValue.equals(value, ignoreCase = true) } ?: PENDING
+            entries.firstOrNull { it.apiValue.equals(value, ignoreCase = true) } ?: PENDING
     }
 }
 
@@ -87,6 +87,8 @@ data class UserProfile(
     val role: Role,
     val photoUrl: String,
     val photoVersion: Long,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
 )
 
 data class Invoice(

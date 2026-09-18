@@ -116,6 +116,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:hint="@string/label_price"
+                app:prefixText="KSh "
                 app:startIconDrawable="@drawable/ic_money">
 
                 <com.google.android.material.textfield.TextInputEditText

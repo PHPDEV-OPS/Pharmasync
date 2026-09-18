@@ -166,12 +166,17 @@ class StockFragment : SessionFragment() {
         sheet.show()
     }
 
-    private fun chooseSupplierToReorder(item: Medicine) {
+    private fun chooseSupplierToReorder(item: Medicine, refreshed: Boolean = false) {
         val suppliers = session.suppliers.value
+        if (suppliers.isEmpty() && !refreshed) {
+            // The cache may be stale; ask the server before telling the user there are none.
+            session.refreshSuppliers { if (isAdded) chooseSupplierToReorder(item, refreshed = true) }
+            return
+        }
         if (suppliers.isEmpty()) {
             MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.empty_suppliers_title)
-                .setMessage(R.string.msg_no_suppliers_yet)
+                .setMessage(session.backendIssue.value?.resolve(requireContext()) ?: getString(R.string.msg_no_suppliers_yet))
                 .setPositiveButton(R.string.action_ok, null)
                 .show()
             return

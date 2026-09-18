@@ -144,12 +144,10 @@ class ProfileFragment : SessionFragment() {
                 ).all { it }
                 if (!valid) return@setOnClickListener
                 session.updateProfile(
-                    profile.copy(
-                        name = form.nameLayout.textValue,
-                        businessName = form.businessLayout.textValue,
-                        phone = form.phoneLayout.textValue,
-                        address = form.addressLayout.textValue,
-                    )
+                    name = form.nameLayout.textValue,
+                    businessName = form.businessLayout.textValue,
+                    address = form.addressLayout.textValue,
+                    phone = form.phoneLayout.textValue,
                 )
                 dialog.dismiss()
             }

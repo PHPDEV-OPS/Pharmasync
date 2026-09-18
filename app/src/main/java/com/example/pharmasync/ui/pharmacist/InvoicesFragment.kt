@@ -10,22 +10,16 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import com.bumptech.glide.Glide
 import com.example.pharmasync.R
-import com.example.pharmasync.data.model.Invoice
 import com.example.pharmasync.databinding.DialogInvoiceFormBinding
 import com.example.pharmasync.databinding.FragmentCollectionBinding
-import com.example.pharmasync.databinding.SheetInvoiceDetailBinding
 import com.example.pharmasync.ui.common.CollectionScreen
-import com.example.pharmasync.ui.common.Dialogs
 import com.example.pharmasync.ui.common.InvoiceAdapter
 import com.example.pharmasync.ui.session.SessionFragment
 import com.example.pharmasync.ui.session.SessionViewModel
-import com.example.pharmasync.util.Formatters
-import com.example.pharmasync.util.ImageLoader
 import com.example.pharmasync.util.collectWhileViewStarted
 import com.example.pharmasync.util.textValue
 import com.example.pharmasync.util.validate
 import com.example.pharmasync.util.visibleIf
-import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -59,7 +53,7 @@ class InvoicesFragment : SessionFragment() {
         val screen = CollectionScreen(binding)
         screen.search(getString(R.string.search_hint)) { query.value = it }
         screen.fab(getString(R.string.action_add_invoice), R.drawable.ic_add) { openForm() }
-        val adapter = InvoiceAdapter(::showDetails)
+        val adapter = InvoiceAdapter { startActivity(InvoicePreviewActivity.intent(requireContext(), it.id)) }
         binding.recycler.adapter = adapter
 
         collectWhileViewStarted(combine(session.invoices, query) { i, q -> i to q }) { (invoices, q) ->
@@ -110,34 +104,6 @@ class InvoicesFragment : SessionFragment() {
         }
         dialog.setOnDismissListener { form = null }
         dialog.show()
-    }
-
-    private fun showDetails(invoice: Invoice) {
-        val sheet = BottomSheetDialog(requireContext())
-        val details = SheetInvoiceDetailBinding.inflate(layoutInflater)
-        with(details) {
-            name.text = invoice.name
-            date.text = Formatters.date(invoice.createdAt)
-            description.text = invoice.description
-            description.visibleIf(invoice.description.isNotBlank())
-            ImageLoader.load(image, invoice.imageRef, placeholder = R.drawable.ic_receipt)
-            image.scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
-            btnDownload.setOnClickListener {
-                sheet.dismiss()
-                session.exportInvoice(invoice)
-            }
-            btnDelete.setOnClickListener {
-                sheet.dismiss()
-                Dialogs.confirm(
-                    requireContext(),
-                    title = getString(R.string.dialog_delete_title, invoice.name),
-                    message = getString(R.string.dialog_delete_message),
-                    confirmText = getString(R.string.action_delete),
-                ) { session.deleteInvoice(invoice) }
-            }
-        }
-        sheet.setContentView(details.root)
-        sheet.show()
     }
 
     override fun onDestroyView() {

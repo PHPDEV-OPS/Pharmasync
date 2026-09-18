@@ -52,7 +52,7 @@
                 android:maxLines="1"
                 android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                 android:textColor="?attr/colorOnSurfaceVariant"
-                tools:text="Antibiotic · $4.50" />
+                tools:text="Antibiotic · KSh 450.00" />
 
             <TextView
                 android:id="@+id/stock"

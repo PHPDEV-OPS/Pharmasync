@@ -16,13 +16,13 @@ import com.example.pharmasync.appContainer
 import com.example.pharmasync.data.model.Medicine
 import com.example.pharmasync.data.model.StockCollection
 import com.example.pharmasync.data.model.SupplierSummary
-import com.example.pharmasync.data.model.UserProfile
 import com.example.pharmasync.databinding.FragmentCollectionBinding
 import com.example.pharmasync.ui.common.CollectionScreen
 import com.example.pharmasync.ui.common.Dialogs
 import com.example.pharmasync.ui.common.MedicineAdapter
 import com.example.pharmasync.ui.common.MedicineRow
 import com.example.pharmasync.util.Formatters
+import com.example.pharmasync.util.InsufficientStockException
 import com.example.pharmasync.util.UiMessage
 import com.example.pharmasync.util.collectWhileStarted
 import com.example.pharmasync.util.showMessage
@@ -65,6 +65,10 @@ class SupplierCatalogActivity : AppCompatActivity() {
             onAction = { showOrderDialog(it.medicine) },
         )
         binding.recycler.adapter = adapter
+
+        binding.swipeRefresh.isEnabled = true
+        binding.swipeRefresh.setOnRefreshListener { viewModel.refresh() }
+        collectWhileStarted(viewModel.loading) { if (!it) binding.swipeRefresh.isRefreshing = false }
 
         collectWhileStarted(viewModel.supplier) { supplier ->
             if (supplier != null) screen.header(supplier.name, supplier.address.ifBlank { supplier.email })
@@ -139,34 +143,42 @@ class SupplierCatalogViewModel(application: Application, private val supplierId:
         .map { list -> list.firstOrNull { it.uid == supplierId } }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    private val pharmacy: StateFlow<UserProfile?> = container.userRepository.observeProfile(uid)
-        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    init {
+        refresh()
+    }
 
-    private val registration = container.inventoryRepository.sync(
-        supplierId,
-        StockCollection.SUPPLIER_CATALOG,
-        viewModelScope,
-        onError = { _loading.value = false; messageChannel.trySend(UiMessage.Error(it)) },
-        onSynced = { _loading.value = false },
-    )
-
-    fun placeOrder(item: Medicine, quantity: Int) = viewModelScope.launch {
-        val me = pharmacy.value
-        val seller = supplier.value
-        if (me == null || seller == null) {
-            messageChannel.trySend(UiMessage.of(R.string.error_requires_connection))
-            return@launch
-        }
+    fun refresh() = viewModelScope.launch {
+        _loading.value = true
         try {
-            container.orderRepository.place(me, seller, item, quantity)
-            messageChannel.trySend(UiMessage.of(R.string.msg_order_placed, seller.name))
+            container.inventoryRepository.refresh(supplierId, StockCollection.SUPPLIER_CATALOG, forOwner = supplierId)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            Log.w("SupplierCatalog", "Order failed", e)
+            Log.w(TAG, "Catalog load failed", e)
+            messageChannel.trySend(UiMessage.Error(e))
+        } finally {
+            _loading.value = false
+        }
+    }
+
+    fun placeOrder(item: Medicine, quantity: Int) = viewModelScope.launch {
+        try {
+            val seller = supplier.value
+            container.orderRepository.place(supplierId, item, quantity)
+            messageChannel.trySend(UiMessage.of(R.string.msg_order_placed, seller?.name ?: item.name))
+            refresh()
+        } catch (e: InsufficientStockException) {
+            messageChannel.trySend(UiMessage.of(R.string.error_insufficient_stock, e.available))
+            refresh()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "Order failed", e)
             messageChannel.trySend(UiMessage.Error(e))
         }
     }
 
-    override fun onCleared() = registration.remove()
+    private companion object {
+        const val TAG = "SupplierCatalog"
+    }
 }

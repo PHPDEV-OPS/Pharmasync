@@ -78,7 +78,7 @@
                 <TextView
                     android:id="@+id/price"
                     style="@style/Widget.Pharmasync.StatValue"
-                    tools:text="$4.50" />
+                    tools:text="KSh 450.00" />
 
                 <TextView
                     style="@style/Widget.Pharmasync.StatLabel"

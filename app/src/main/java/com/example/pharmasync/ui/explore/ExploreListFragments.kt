@@ -13,9 +13,12 @@ import com.example.pharmasync.ui.common.ContactAdapter
 import com.example.pharmasync.ui.common.ContactRow
 import com.example.pharmasync.ui.common.MedicineAdapter
 import com.example.pharmasync.ui.common.MedicineRow
+import com.example.pharmasync.util.UiMessage
 import com.example.pharmasync.util.collectWhileViewStarted
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+
+private data class ListState<T>(val items: List<T>, val query: String, val loading: Boolean, val error: UiMessage?)
 
 /** Shared scaffolding for the public list tabs. */
 abstract class ExploreListFragment : Fragment() {
@@ -40,7 +43,7 @@ abstract class ExploreListFragment : Fragment() {
             if (!loading) binding.swipeRefresh.isRefreshing = false
             screen.loading(loading && !binding.swipeRefresh.isRefreshing)
         }
-        collectWhileViewStarted(viewModel.error) { error -> error?.let { explore.message(it.resolve(requireContext())) } }
+
     }
 
     override fun onDestroyView() {
@@ -60,16 +63,16 @@ class PharmaciesFragment : ExploreListFragment() {
         )
         binding.recycler.adapter = adapter
 
-        collectWhileViewStarted(combine(viewModel.pharmacies, query, viewModel.loading) { p, q, l -> Triple(p, q, l) }) { (pharmacies, q, loading) ->
+        collectWhileViewStarted(combine(viewModel.pharmacies, query, viewModel.loading, viewModel.error) { p, q, l, e -> ListState(p, q, l, e) }) { (pharmacies, q, loading, error) ->
             val visible = pharmacies.filter { q.isEmpty() || it.name.contains(q, true) || it.address.contains(q, true) }
             adapter.submitList(visible.map { ContactRow(it.uid, it.name, it.address, it.phone, it.photoUrl, showMapActions = true) })
             when {
                 loading && pharmacies.isEmpty() -> screen.empty(visible = false)
                 pharmacies.isEmpty() -> screen.empty(
                     visible = true,
-                    icon = R.drawable.ic_store,
-                    title = getString(R.string.empty_pharmacies_title),
-                    message = getString(R.string.empty_pharmacies_message),
+                    icon = if (error != null) R.drawable.ic_warning else R.drawable.ic_store,
+                    title = getString(if (error != null) R.string.error_load_title else R.string.empty_pharmacies_title),
+                    message = error?.resolve(requireContext()) ?: getString(R.string.empty_pharmacies_message),
                     actionText = getString(R.string.action_retry),
                     action = { viewModel.refresh() },
                 )
@@ -90,7 +93,7 @@ class PublicMedicinesFragment : ExploreListFragment() {
         val adapter = MedicineAdapter(MedicineAdapter.Mode.LOCATE, onClick = showPharmacy, onAction = showPharmacy)
         binding.recycler.adapter = adapter
 
-        collectWhileViewStarted(combine(viewModel.medicines, query, viewModel.loading) { m, q, l -> Triple(m, q, l) }) { (medicines, q, loading) ->
+        collectWhileViewStarted(combine(viewModel.medicines, query, viewModel.loading, viewModel.error) { m, q, l, e -> ListState(m, q, l, e) }) { (medicines, q, loading, error) ->
             val visible = medicines.filter {
                 q.isEmpty() || it.medicine.name.contains(q, true) || it.medicine.category.contains(q, true)
             }
@@ -99,6 +102,14 @@ class PublicMedicinesFragment : ExploreListFragment() {
             })
             when {
                 loading && medicines.isEmpty() -> screen.empty(visible = false)
+                medicines.isEmpty() && error != null -> screen.empty(
+                    visible = true,
+                    icon = R.drawable.ic_warning,
+                    title = getString(R.string.error_load_title),
+                    message = error.resolve(requireContext()),
+                    actionText = getString(R.string.action_retry),
+                    action = { viewModel.refresh() },
+                )
                 visible.isEmpty() -> screen.empty(
                     visible = true,
                     icon = R.drawable.ic_medical_services,

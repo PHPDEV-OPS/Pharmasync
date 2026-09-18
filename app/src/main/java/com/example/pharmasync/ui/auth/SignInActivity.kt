@@ -26,8 +26,13 @@ class SignInActivity : AppCompatActivity() {
         binding = ActivitySignInBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        intent.getStringExtra(EXTRA_EMAIL)?.let { binding.emailInput.setText(it) }
-        intent.getStringExtra(EXTRA_MESSAGE)?.let { binding.root.showMessage(it) }
+        val email = intent.getStringExtra(EXTRA_EMAIL)
+        email?.let { binding.emailInput.setText(it) }
+        if (intent.getBooleanExtra(EXTRA_VERIFY_EMAIL, false) && email != null) {
+            binding.verifyBanner.visibility = View.VISIBLE
+            binding.verifyBannerText.text = getString(R.string.verify_banner_message, email)
+            binding.passwordInput.requestFocus()
+        }
 
         binding.btnBack.setOnClickListener { finish() }
         binding.btnGoSignUp.setOnClickListener {
@@ -54,6 +59,10 @@ class SignInActivity : AppCompatActivity() {
                 when (val result = appContainer.authRepository.signIn(email, password)) {
                     is SignInResult.Success -> {
                         startActivity(homeIntent(this@SignInActivity, result.role))
+                        finish()
+                    }
+                    SignInResult.ProfileMissing -> {
+                        startActivity(Intent(this@SignInActivity, CompleteProfileActivity::class.java))
                         finish()
                     }
                     is SignInResult.EmailNotVerified -> {
@@ -98,6 +107,6 @@ class SignInActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_EMAIL = "email"
-        const val EXTRA_MESSAGE = "message"
+        const val EXTRA_VERIFY_EMAIL = "verify_email"
     }
 }

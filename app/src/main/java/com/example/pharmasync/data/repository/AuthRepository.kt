@@ -2,17 +2,20 @@ package com.example.pharmasync.data.repository
 
 import com.example.pharmasync.data.local.AppDatabase
 import com.example.pharmasync.data.model.Role
-import com.example.pharmasync.data.model.UserProfile
 import com.example.pharmasync.util.SessionPrefs
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.userProfileChangeRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 sealed interface SignInResult {
     data class Success(val role: Role) : SignInResult
     data class EmailNotVerified(val email: String) : SignInResult
+
+    /** Signed in, but this account has no Pharmasync profile yet (finish setting it up). */
+    data object ProfileMissing : SignInResult
 }
 
 data class SignUpForm(
@@ -25,6 +28,10 @@ data class SignUpForm(
     val phone: String,
 )
 
+/**
+ * Firebase Authentication handles sign-in only. Profiles and all other data live in Neon; the
+ * Firebase ID token is what the backend verifies.
+ */
 class AuthRepository(
     private val auth: FirebaseAuth,
     private val users: UserRepository,
@@ -33,16 +40,15 @@ class AuthRepository(
 ) {
     val currentUid: String? get() = auth.currentUser?.uid
 
-    /** Role for routing a returning user; uses the cached value when offline. */
-    suspend fun resolveRole(uid: String): Role {
-        val cached = session.cachedRole(uid)
-        val fetched = runCatching { users.fetchProfile(uid)?.role }.getOrNull()
-        val role = fetched ?: cached ?: Role.PHARMACIST
-        session.cacheRole(uid, role)
+    fun isSignedInAndVerified(): Boolean = auth.currentUser?.isEmailVerified == true
+
+    /** Role for routing a returning user; falls back to the cached value when offline. */
+    suspend fun resolveRole(uid: String): Role? {
+        val fetched = runCatching { withTimeoutOrNull(PROFILE_TIMEOUT_MS) { users.refresh()?.role } }.getOrNull()
+        val role = fetched ?: session.cachedRole(uid)
+        if (role != null) session.cacheRole(uid, role)
         return role
     }
-
-    fun isSignedInAndVerified(): Boolean = auth.currentUser?.isEmailVerified == true
 
     suspend fun signIn(email: String, password: String): SignInResult {
         val user = auth.signInWithEmailAndPassword(email, password).await().user
@@ -53,28 +59,30 @@ class AuthRepository(
             auth.signOut()
             return SignInResult.EmailNotVerified(email)
         }
-        return SignInResult.Success(resolveRole(user.uid))
+        // Refresh the token so the backend sees the verified email straight away.
+        runCatching { user.getIdToken(true).await() }
+        val profile = users.refresh() ?: return SignInResult.ProfileMissing
+        session.cacheRole(user.uid, profile.role)
+        return SignInResult.Success(profile.role)
     }
 
     suspend fun signUp(form: SignUpForm) {
         val user = auth.createUserWithEmailAndPassword(form.email, form.password).await().user
             ?: error("Sign-up returned no user")
         runCatching { user.updateProfile(userProfileChangeRequest { displayName = form.name }).await() }
-        val profile = UserProfile(
-            uid = user.uid,
-            email = form.email,
-            name = form.name,
-            businessName = form.businessName,
-            address = form.address,
-            phone = form.phone,
-            role = form.role,
-            photoUrl = "",
-            photoVersion = 0L,
-        )
-        users.createProfile(profile)
-        session.cacheRole(user.uid, form.role)
-        user.sendEmailVerification().await()
-        auth.signOut()
+        try {
+            users.createOrUpdate(form.role, form.name, form.businessName, form.address, form.phone)
+            session.cacheRole(user.uid, form.role)
+        } catch (e: Exception) {
+            // The login exists but the profile didn't save; the next sign-in offers to finish setup.
+            auth.signOut()
+            throw e
+        }
+        try {
+            user.sendEmailVerification().await()
+        } finally {
+            auth.signOut()
+        }
     }
 
     suspend fun sendPasswordReset(email: String) {
@@ -85,5 +93,9 @@ class AuthRepository(
         auth.signOut()
         session.clear()
         withContext(Dispatchers.IO) { database.clearAllTables() }
+    }
+
+    private companion object {
+        const val PROFILE_TIMEOUT_MS = 8_000L
     }
 }

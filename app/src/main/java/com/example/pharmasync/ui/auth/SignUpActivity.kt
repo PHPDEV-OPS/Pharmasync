@@ -15,6 +15,7 @@ import com.example.pharmasync.util.UiMessage
 import com.example.pharmasync.util.showMessage
 import com.example.pharmasync.util.textValue
 import com.example.pharmasync.util.validate
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
@@ -74,12 +75,8 @@ class SignUpActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 appContainer.authRepository.signUp(form)
-                startActivity(
-                    Intent(this@SignUpActivity, SignInActivity::class.java)
-                        .putExtra(SignInActivity.EXTRA_EMAIL, email)
-                        .putExtra(SignInActivity.EXTRA_MESSAGE, getString(R.string.msg_verify_email_sent, email))
-                )
-                finish()
+                setLoading(false)
+                showSuccess(email)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -87,6 +84,23 @@ class SignUpActivity : AppCompatActivity() {
                 binding.root.showMessage(UiMessage.Error(e))
             }
         }
+    }
+
+    private fun showSuccess(email: String) {
+        MaterialAlertDialogBuilder(this)
+            .setIcon(R.drawable.ic_check_circle)
+            .setTitle(R.string.sign_up_success_title)
+            .setMessage(getString(R.string.sign_up_success_message, email))
+            .setCancelable(false)
+            .setPositiveButton(R.string.action_go_to_sign_in) { _, _ ->
+                startActivity(
+                    Intent(this, SignInActivity::class.java)
+                        .putExtra(SignInActivity.EXTRA_EMAIL, email)
+                        .putExtra(SignInActivity.EXTRA_VERIFY_EMAIL, true)
+                )
+                finish()
+            }
+            .show()
     }
 
     private fun setLoading(loading: Boolean) {

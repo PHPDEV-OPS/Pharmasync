@@ -13,6 +13,7 @@ import androidx.fragment.app.Fragment
 import com.example.pharmasync.R
 import com.example.pharmasync.data.model.Role
 import com.example.pharmasync.databinding.ActivityHostBinding
+import com.example.pharmasync.ui.auth.CompleteProfileActivity
 import com.example.pharmasync.ui.auth.WelcomeActivity
 import com.example.pharmasync.util.Notifications
 import com.example.pharmasync.util.collectWhileStarted
@@ -65,6 +66,26 @@ abstract class SessionHostActivity : AppCompatActivity(), SessionHost {
                 .show()
         }
         requestNotificationPermission()
+
+        collectWhileStarted(session.profileMissing) { missing ->
+            if (missing) {
+                startActivity(Intent(this, CompleteProfileActivity::class.java))
+                finish()
+            }
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        if (!isFinishing) {
+            session.setForeground(true)
+            session.refreshAll()
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        session.setForeground(false)
     }
 
     fun selectTab(@IdRes itemId: Int) {

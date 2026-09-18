@@ -16,12 +16,12 @@ import com.example.pharmasync.databinding.ItemOrderBinding
 import com.example.pharmasync.util.Formatters
 import com.example.pharmasync.util.bindStatus
 
-enum class OrderAction(@StringRes val label: Int) {
-    ACCEPT(R.string.action_accept),
-    DECLINE(R.string.action_decline),
-    DISPATCH(R.string.action_dispatch),
-    CANCEL(R.string.action_cancel_order),
-    RECEIVE(R.string.action_mark_received);
+enum class OrderAction(@StringRes val label: Int, val apiValue: String) {
+    ACCEPT(R.string.action_accept, "accept"),
+    DECLINE(R.string.action_decline, "decline"),
+    DISPATCH(R.string.action_dispatch, "dispatch"),
+    CANCEL(R.string.action_cancel_order, "cancel"),
+    RECEIVE(R.string.action_mark_received, "receive");
 
     companion object {
         /** (primary, secondary) actions available to [role] for [order]. */

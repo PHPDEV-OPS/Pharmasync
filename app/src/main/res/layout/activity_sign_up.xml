@@ -34,6 +34,7 @@
             android:src="@drawable/img_signup" />
 
         <TextView
+            android:id="@+id/title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
@@ -43,6 +44,7 @@
             android:textStyle="bold" />
 
         <TextView
+            android:id="@+id/subtitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
@@ -248,6 +250,7 @@
             app:trackCornerRadius="2dp" />
 
         <LinearLayout
+            android:id="@+id/prompt_row"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"

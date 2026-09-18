@@ -5,7 +5,6 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.ksp)
     alias(libs.plugins.google.gms.google.services)
-    alias(libs.plugins.google.android.libraries.mapsplatform.secrets.gradle.plugin)
 }
 
 android {
@@ -26,6 +25,16 @@ android {
             rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
         }
         buildConfigField("String", "GEOAPIFY_API_KEY", "\"${localProperties.getProperty("GEOAPIFY_API_KEY", "")}\"")
+
+        // Pharmasync backend: a Neon Function in front of Neon Postgres and Neon Object Storage.
+        val apiBaseUrl = localProperties.getProperty(
+            "API_BASE_URL",
+            "https://br-long-thunder-b4wh1lkb-api.compute.c-6.us-east-2.aws.neon.tech/",
+        )
+        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
+
+        // CARTO basemap key for raster map tiles; falls back to plain OpenStreetMap when unset.
+        buildConfigField("String", "CARTO_API_KEY", "\"${localProperties.getProperty("CARTO_API_KEY", "")}\"")
     }
 
     buildTypes {
@@ -48,14 +57,6 @@ android {
         viewBinding = true
         buildConfig = true
     }
-}
-
-// MAPS_API_KEY is read from local.properties and injected into the manifest.
-secrets {
-    propertiesFileName = "local.properties"
-    defaultPropertiesFileName = "local.defaults.properties"
-    ignoreList.add("GEOAPIFY_API_KEY")
-    ignoreList.add("sdk.*")
 }
 
 ksp {
@@ -85,13 +86,12 @@ dependencies {
     ksp(libs.androidx.room.compiler)
 
     // Firebase
+    // Firebase is used for authentication only; all data lives in Neon.
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
-    implementation(libs.firebase.firestore)
-    implementation(libs.firebase.storage)
 
     // Maps, location, barcode scanning
-    implementation(libs.play.services.maps)
+    implementation(libs.osmdroid) // OpenStreetMap tiles: no API key or billing required
     implementation(libs.play.services.location)
     implementation(libs.mlkit.barcode.scanning)
     implementation(libs.androidx.camera.core)
@@ -101,6 +101,7 @@ dependencies {
     implementation(libs.guava) // ListenableFuture used by CameraX
 
     // Networking + images
+    implementation(libs.okhttp)
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)
     implementation(libs.glide)

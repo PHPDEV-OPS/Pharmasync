@@ -37,15 +37,21 @@ class SuppliersFragment : SessionFragment() {
         })
         binding.recycler.adapter = adapter
 
-        collectWhileViewStarted(combine(session.suppliers, query) { s, q -> s to q }) { (suppliers, q) ->
+        binding.swipeRefresh.isEnabled = true
+        binding.swipeRefresh.setOnRefreshListener { session.refreshSuppliers { _binding?.swipeRefresh?.isRefreshing = false } }
+        if (savedInstanceState == null) session.refreshSuppliers()
+
+        collectWhileViewStarted(combine(session.suppliers, query, session.backendIssue) { s, q, e -> Triple(s, q, e) }) { (suppliers, q, issue) ->
             val visible = suppliers.filter { q.isEmpty() || it.name.contains(q, true) || it.address.contains(q, true) }
             adapter.submitList(visible.map { ContactRow(it.uid, it.name, it.address, listOf(it.email, it.phone).filter(String::isNotBlank).joinToString(" · "), it.photoUrl, false) })
             when {
                 suppliers.isEmpty() -> screen.empty(
                     visible = true,
-                    icon = R.drawable.ic_local_shipping,
-                    title = getString(R.string.empty_suppliers_title),
-                    message = getString(R.string.empty_suppliers_message),
+                    icon = if (issue != null) R.drawable.ic_warning else R.drawable.ic_local_shipping,
+                    title = getString(if (issue != null) R.string.error_load_title else R.string.empty_suppliers_title),
+                    message = issue?.resolve(requireContext()) ?: getString(R.string.empty_suppliers_message),
+                    actionText = getString(R.string.action_retry),
+                    action = { session.refreshSuppliers() },
                 )
                 visible.isEmpty() -> screen.empty(true, R.drawable.ic_search, getString(R.string.empty_search_title), getString(R.string.empty_search_message))
                 else -> screen.empty(visible = false)

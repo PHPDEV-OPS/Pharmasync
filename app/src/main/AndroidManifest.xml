@@ -25,11 +25,6 @@
         android:theme="@style/Theme.Pharmasync"
         tools:targetApi="34">
 
-        <!-- Set MAPS_API_KEY in local.properties -->
-        <meta-data
-            android:name="com.google.android.geo.API_KEY"
-            android:value="${MAPS_API_KEY}" />
-
         <activity
             android:name=".ui.splash.StartActivity"
             android:exported="true"
@@ -51,6 +46,10 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
+            android:name=".ui.auth.CompleteProfileActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
             android:name=".ui.pharmacist.PharmacistHomeActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustPan" />
@@ -58,6 +57,9 @@
             android:name=".ui.pharmacist.SupplierCatalogActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustPan" />
+        <activity
+            android:name=".ui.pharmacist.InvoicePreviewActivity"
+            android:exported="false" />
         <activity
             android:name=".ui.supplier.SupplierHomeActivity"
             android:exported="false"
@@ -72,6 +74,16 @@
             android:screenOrientation="portrait"
             android:theme="@style/Theme.Pharmasync.Scanner"
             tools:ignore="DiscouragedApi,LockedOrientationActivity" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

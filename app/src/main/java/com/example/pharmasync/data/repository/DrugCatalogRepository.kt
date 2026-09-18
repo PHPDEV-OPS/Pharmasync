@@ -57,16 +57,18 @@ class DrugCatalogRepository(private val api: OpenFdaApi) {
             .take(count)
     }
 
-    /** Turns a directory entry into an inventory item with plausible demo stock and pricing. */
+    /** Turns a directory entry into an inventory item with plausible demo stock and pricing in KES. */
     fun toDemoMedicine(drug: CatalogDrug, id: String, ownerId: String): Medicine {
         val stock = Random.nextInt(0, 60).let { if (it < 8) it else it * 5 }
+        // Realistic KES prices ranging from KSh 100 to KSh 5,000 in steps of KSh 50
+        val price = (Random.nextInt(2, 101) * 50).toDouble()
         return Medicine(
             id = id,
             ownerId = ownerId,
             name = drug.displayName,
             description = drug.description,
             category = drug.category,
-            price = (Random.nextInt(50, 4_500) / 100.0),
+            price = price,
             stock = stock,
             lowStockThreshold = 20,
             manufacturer = drug.manufacturer,

@@ -14,7 +14,7 @@
         android:layout_height="wrap_content"
         android:hint="@string/label_quantity"
         app:startIconDrawable="@drawable/ic_numbers"
-        tools:helperText="120 available · $4.50 each">
+        tools:helperText="120 available · KSh 450.00 each">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/input"
@@ -33,6 +33,6 @@
         android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
         android:textColor="?attr/colorPrimary"
         android:visibility="gone"
-        tools:text="Total: $450.00"
+        tools:text="Total: KSh 45,000.00"
         tools:visibility="visible" />
 </LinearLayout>

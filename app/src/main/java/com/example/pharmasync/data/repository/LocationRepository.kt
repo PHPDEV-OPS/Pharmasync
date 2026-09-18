@@ -34,11 +34,21 @@ class LocationRepository(
 ) {
     suspend fun geocode(address: String): GeoPoint? {
         if (address.isBlank()) return null
-        val fromDevice = runCatching { deviceGeocode(address) }.getOrNull()
+        val targetAddress = when {
+            address.contains("Kenya", ignoreCase = true) -> address
+            address.contains("Nairobi", ignoreCase = true) -> "$address, Kenya"
+            else -> "$address, Nairobi, Kenya"
+        }
+        val fromDevice = runCatching { deviceGeocode(targetAddress) }.getOrNull()
+            ?: runCatching { deviceGeocode(address) }.getOrNull()
         if (fromDevice != null) return fromDevice
         val key = BuildConfig.GEOAPIFY_API_KEY
         if (key.isBlank()) return null
         return runCatching {
+            geoapify.search(targetAddress, key).features?.firstOrNull()?.geometry?.coordinates
+                ?.takeIf { it.size >= 2 }
+                ?.let { GeoPoint(latitude = it[1], longitude = it[0]) }
+        }.getOrNull() ?: runCatching {
             geoapify.search(address, key).features?.firstOrNull()?.geometry?.coordinates
                 ?.takeIf { it.size >= 2 }
                 ?.let { GeoPoint(latitude = it[1], longitude = it[0]) }
